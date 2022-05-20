@@ -3,6 +3,16 @@
 //
 
 #include "VirtualMemory.h"
+#include <iostream>
+
+
+uint64_t getMask(const uint64_t virtualAddress, const int startInd, const int bitWidth=OFFSET_WIDTH){
+  uint64_t subAddress = 1LL << (bitWidth);
+  subAddress--;
+  subAddress = subAddress << startInd;
+  return subAddress & virtualAddress;
+}
+
 
 /*
  * Initialize the virtual memory.
@@ -25,3 +35,9 @@ int VMread(uint64_t virtualAddress, word_t* value);
  * address for any reason)
  */
 int VMwrite(uint64_t virtualAddress, word_t value);
+
+//int main(int argc, char **argv) {
+////  getMask()
+//  uint64_t test = 45789;
+//  printf(reinterpret_cast<const char *>(test));
+//}
