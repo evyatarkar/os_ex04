@@ -2,9 +2,6 @@
 
 #include "MemoryConstants.h"
 
-
-uint64_t getMask(uint64_t virtualAddress, int startInd, int bitWidth);
-
 /*
  * Initialize the virtual memory.
  */
