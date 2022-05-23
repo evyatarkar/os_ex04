@@ -76,10 +76,12 @@ getDistanceFromCurFrameIndex (uint64_t curLogicalAddressIndex, uint64_t logicalA
 uint64_t
 getNextLogicalAddress (uint64_t oldLogicalAddress, uint64_t currentStepDirection)
 {
-  std::cout << " 0 - oldLogicalAddress " << oldLogicalAddress << ", currentStepDirection " << currentStepDirection << std::endl;
+  std::cout << " 0 - oldLogicalAddress " << oldLogicalAddress
+            << ", currentStepDirection " << currentStepDirection << std::endl;
   uint64_t newLogicalAddress = oldLogicalAddress << OFFSET_WIDTH;
 
-  std::cout << "   - after pushing by offset: " << newLogicalAddress<< std::endl;
+  std::cout << "   - after pushing by offset: " << newLogicalAddress
+            << std::endl;
   if (currentStepDirection != 0)
     {
       newLogicalAddress = newLogicalAddress | currentStepDirection;
@@ -89,7 +91,7 @@ getNextLogicalAddress (uint64_t oldLogicalAddress, uint64_t currentStepDirection
 }
 
 void
-DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *res,
+DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *indexOfEmptyFrameFound,
      int *maxDist, uint64_t *maxDistIndex, uint64_t logicalAddressPageIndex,
      uint64_t *fatherIndexOfFinalIndex, uint64_t *logicalAddressOfFinalFrameIndex,
      uint64_t *frameIndexOfFinalIndexInFather, int *done, uint64_t currentLogicalAddress)
@@ -99,16 +101,13 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *res
   std::cout << "getting sub address for current logical address in DFS"
             << std::endl;
 
-//  auto currentLogicalAddress = getSubAddress (curFrameIndex, TABLES_DEPTH - 1,
-//                                              VIRTUAL_ADDRESS_WIDTH
-//                                              - OFFSET_WIDTH); //here giving backk 4 should give 6
   if (fatherFrameIndex != curFrameIndex && level != TABLES_DEPTH)
     {
       if (isFrameEmpty (curFrameIndex))
         {
-          *res = curFrameIndex;
+          *indexOfEmptyFrameFound = curFrameIndex;
           *logicalAddressOfFinalFrameIndex = currentLogicalAddress;
-//            *done = 1;
+          *done = 1;
           return;
         }
     }
@@ -152,7 +151,7 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *res
 //              *curFrameIndex = value;
 //          auto nextLogicalAddress = getNextLogicalAddress(oldLogicalAddress, i);
 
-              DFS (fatherFrameIndex, value, level + 1, res,
+              DFS (fatherFrameIndex, value, level + 1, indexOfEmptyFrameFound,
                    maxDist, maxDistIndex, logicalAddressPageIndex,
                    fatherIndexOfFinalIndex, logicalAddressOfFinalFrameIndex,
                    frameIndexOfFinalIndexInFather, done,
@@ -163,6 +162,9 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *res
                 }
             }
         }
+      // TODO something needs to happen here to single out the last frame we took while trying to build a tree and the were none left
+      // because now its zeros so its exchanging itself.
+      // freeFrameIndex is 3 and should be 4
     }
 
 }
@@ -177,34 +179,31 @@ findFreeFrameIndex (uint64_t fatherFrameIndex, int *nextIndex, uint64_t logicalA
     }
 
   std::cout << "No more indexes left. this is good." << std::endl;
-  uint64_t res = -1;
+  uint64_t indexOfEmptyFrameFound = 0;
   int done = 0;
   int maxDist = 0;
   uint64_t currentFrameIndexInDFS = 0;
-  uint64_t logicalAddressOfFinalFrameIndex = -1;
-  uint64_t maxDistIndex = -1;
-  uint64_t fatherIndexOfFinalIndex = -1;
-  uint64_t frameIndexOfFinalIndexInFather = -1;
+  uint64_t logicalAddressOfFinalFrameIndex = 0;
+  uint64_t maxDistIndex = 0;
+  uint64_t fatherIndexOfFinalIndex = 0;
+  uint64_t frameIndexOfFinalIndexInFather = 0;
 
   std::cout << "starting DFS" << std::endl;
-  DFS (fatherFrameIndex, currentFrameIndexInDFS, 0, &res, &maxDist, &maxDistIndex,
+  DFS (fatherFrameIndex, currentFrameIndexInDFS, 0, &indexOfEmptyFrameFound, &maxDist, &maxDistIndex,
        logicalAddressPageIndex, &fatherIndexOfFinalIndex, &logicalAddressOfFinalFrameIndex,
        &frameIndexOfFinalIndexInFather, &done, 0);
   std::cout << "finished DFS" << std::endl;
 
-  if (res != -1)
+  if (indexOfEmptyFrameFound != 0)
     {
-      PMevict (res, logicalAddressPageIndex);
-//        PMevict(res, logicalAddressOfFinalFrameIndex);
-      PMwrite ((fatherIndexOfFinalIndex) * PAGE_SIZE
-               + frameIndexOfFinalIndexInFather, 0);
-      return res;
+//      PMevict (indexOfEmptyFrameFound, logicalAddressOfFinalFrameIndex);
+      PMwrite ((fatherIndexOfFinalIndex) * PAGE_SIZE + frameIndexOfFinalIndexInFather, 0);
+      return indexOfEmptyFrameFound;
     }
-  PMevict (maxDistIndex, logicalAddressPageIndex);
-//    PMevict(maxDistIndex, logicalAddressOfFinalFrameIndex);
+
+  PMevict (maxDistIndex, logicalAddressOfFinalFrameIndex);
   initializeTable (maxDistIndex);
-  PMwrite ((fatherIndexOfFinalIndex) * PAGE_SIZE
-           + frameIndexOfFinalIndexInFather, 0);
+  PMwrite ((fatherIndexOfFinalIndex) * PAGE_SIZE + frameIndexOfFinalIndexInFather, 0);
   return maxDistIndex;
 }
 
@@ -239,16 +238,16 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
 //            addresses[i] = freeFrameIndex;
 //            std::cout << "   freeFrameIndex found after DFS: " << freeFrameIndex << std::endl;
           // link the new empty frame to father
-//          std::cout << " linking new frame " << freeFrameIndex << " to father "
-//                    << lastFreeFrameIndex << " in index: " << p_i << std::endl;
+          std::cout << " linking new frame " << freeFrameIndex << " to father "
+                    << lastFreeFrameIndex << " in index: " << p_i << std::endl;
           PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
         }
       else
         {
 //          std::cout << "GOT TO ELSE FROM addresses[i] == " << addresses[i] << std::endl;
-          lastFreeFrameIndex = freeFrameIndex;
+          lastFreeFrameIndex = freeFrameIndex; //todo: what is that?
           freeFrameIndex = addresses[i];
-          PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
+//          PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
         }
     }
 
