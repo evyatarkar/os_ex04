@@ -5,7 +5,7 @@
 #include "VirtualMemory.h"
 #include "PhysicalMemory.h"
 #include "stdio.h"
-#include "MemoryConstants.h"
+#include "MemoryConstantsTest.h"
 
 
 

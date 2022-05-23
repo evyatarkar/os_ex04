@@ -158,8 +158,14 @@ uint64_t insertPageToFrame(uint64_t virtualAddress) {
                                                      TABLES_DEPTH - 1,
                                                      VIRTUAL_ADDRESS_WIDTH
                                                      - OFFSET_WIDTH);
-    for (int i = 0; i < TABLES_DEPTH; i++) {
-        p_i = getSubAddress(virtualAddress, i, 2);
+    int offsetSize;
+    for (int i = 0; i <= TABLES_DEPTH; i++) {
+        if (i != TABLES_DEPTH){
+          offsetSize = PAGE_SIZE;
+        } else {
+          offsetSize = OFFSET_WIDTH;
+        }
+        p_i = getSubAddress(virtualAddress, i, offsetSize);
         std::cout << "i: " << i << ". Pi: " << p_i << std::endl;
         PMread(lastFreeFrameIndex * PAGE_SIZE + p_i, addresses + i);
         std::cout << "next address from PMread: " << addresses[i + 1] << std::endl;
@@ -167,7 +173,7 @@ uint64_t insertPageToFrame(uint64_t virtualAddress) {
             std::cout << "going to find frame" << std::endl;
             // find room for next kid
             lastFreeFrameIndex = freeFrameIndex;
-            freeFrameIndex = findFreeFrameIndex(addresses[i], &nextFreeIndex, logicalAddressPageIndex);
+            freeFrameIndex = findFreeFrameIndex(lastFreeFrameIndex, &nextFreeIndex, logicalAddressPageIndex);
 //            addresses[i] = freeFrameIndex;
             std::cout << "freeFrameIndex:" << freeFrameIndex << std::endl;
             // link the new empty frame to father
