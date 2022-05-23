@@ -1,7 +1,7 @@
 #pragma once
 
-//#include "MemoryConstants.h"
-#include "MemoryConstantsTest.h"
+#include "MemoryConstants.h"
+//#include "MemoryConstantsTest.h"
 
 /*
  * Reads an integer from the given physical address and puts it in 'value'.

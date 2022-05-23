@@ -39,8 +39,6 @@ void PMwrite(uint64_t physicalAddress, word_t value) {
 }
 
 void PMevict(uint64_t frameIndex, uint64_t evictedPageIndex) {
-  std::cout << "frameIndex is: " << frameIndex << " evictedPageIndex is: " << evictedPageIndex << std::endl;
-
   if (RAM.empty()) {
       initialize();
     }
@@ -49,12 +47,10 @@ void PMevict(uint64_t frameIndex, uint64_t evictedPageIndex) {
   assert(evictedPageIndex < NUM_PAGES);
   assert(swapFile.find(evictedPageIndex) == swapFile.end());
 
-  std::cout << "evictedPageIndex is: " << evictedPageIndex << " RAM[frameIndex][0] is: " << RAM[frameIndex][0] << std::endl;
   swapFile[evictedPageIndex] = RAM[frameIndex];
 }
 
 void PMrestore(uint64_t frameIndex, uint64_t restoredPageIndex) {
-  std::cout << "frameIndex is: " << frameIndex << " restoredPageIndex is: " << restoredPageIndex << std::endl;
 
   if (RAM.empty()) {
         initialize();
@@ -66,10 +62,8 @@ void PMrestore(uint64_t frameIndex, uint64_t restoredPageIndex) {
     // the first reference to this page. we can just return
     // as it doesn't matter if the page contains garbage
     if (swapFile.find(restoredPageIndex) == swapFile.end()) {
-        std::cout << "MIDDLE OF RESTORE!!!!!!!!!!!!!!!!!!!" << std::endl;
         return;
       }
   RAM[frameIndex] = std::move(swapFile[restoredPageIndex]);
   swapFile.erase(restoredPageIndex);
-  std::cout << "END OF RESTORE!!!!!!!!!!!!!!!!!!!" << std::endl;
 }
