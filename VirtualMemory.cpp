@@ -211,7 +211,7 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
         {
           offsetSize = OFFSET_WIDTH;
         }
-      std::cout << "getting sub address p_i. i = " << i << std::endl;
+//      std::cout << "getting sub address p_i. i = " << i << std::endl;
 
       p_i = getSubAddress (virtualAddress, i, offsetSize);
       std::cout << "!! current depth is: " << i << ". offset is: Pi: " << p_i
@@ -228,21 +228,21 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
 //            addresses[i] = freeFrameIndex;
 //            std::cout << "   freeFrameIndex found after DFS: " << freeFrameIndex << std::endl;
           // link the new empty frame to father
-          std::cout << " linking new frame " << freeFrameIndex << " to father "
-                    << lastFreeFrameIndex << " in index: " << p_i << std::endl;
+//          std::cout << " linking new frame " << freeFrameIndex << " to father "
+//                    << lastFreeFrameIndex << " in index: " << p_i << std::endl;
           PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
         }
       else
         {
-          std::cout << "GOT TO ELSE FROM addresses[i] == " << addresses[i] << std::endl;
+//          std::cout << "GOT TO ELSE FROM addresses[i] == " << addresses[i] << std::endl;
           lastFreeFrameIndex = freeFrameIndex;
           freeFrameIndex = addresses[i];
-//          PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
+          PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
         }
     }
 
-  std::cout << "   restoring with: " << freeFrameIndex << ", "
-            << logicalAddressPageIndex << std::endl;
+//  std::cout << "   restoring with: " << freeFrameIndex << ", "
+//            << logicalAddressPageIndex << std::endl;
   PMrestore (freeFrameIndex, logicalAddressPageIndex);
   return freeFrameIndex;
 }
