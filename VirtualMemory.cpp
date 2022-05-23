@@ -50,6 +50,7 @@ int isFrameEmpty (uint64_t frameIndex)
   value = 0;
   for (int i = 0; i < PAGE_SIZE; i++)
     {
+      std::cout << "from isFrameEmpty" << std::endl;
       PMread (frameIndex * PAGE_SIZE + i, &value);
       if (value != 0)
         {
@@ -138,6 +139,8 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
       word_t value;
       for (int i = 0; i < PAGE_SIZE; i++)
         {
+          std::cout << "from DFS" << std::endl;
+
           PMread (curFrameIndex * PAGE_SIZE + i, &value);
 //          std::cout << "-- reading from frame index: " << curFrameIndex <<
 //                    " row num is: " << i << " value from read is: " << value
@@ -228,6 +231,8 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
       p_i = getSubAddress (virtualAddress, i, OFFSET_WIDTH);
 //      std::cout << "!! current depth is: " << i << ". offset is: Pi: " << p_i
 //                << ". freeFrameIndex is: " << freeFrameIndex << std::endl;
+      std::cout << "from insetPageToFrame" << std::endl;
+
       PMread (freeFrameIndex * PAGE_SIZE + p_i, addresses + i);
 
 //      std::cout << "next address from PMread: " << addresses[i] << std::endl;
@@ -240,8 +245,8 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
 //            addresses[i] = freeFrameIndex;
 //            std::cout << "   freeFrameIndex found after DFS: " << freeFrameIndex << std::endl;
           // link the new empty frame to father
-//          std::cout << " linking new frame " << freeFrameIndex << " to father "
-//                    << lastFreeFrameIndex << " in index: " << p_i << std::endl;
+          std::cout << " linking new frame " << freeFrameIndex << " to father "
+                    << lastFreeFrameIndex << " in index: " << p_i << std::endl;
           PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
         }
       else
@@ -282,6 +287,8 @@ int VMread (uint64_t virtualAddress, word_t *value)
 //  std::cout << "\n + from VMread got ne empty frame: " << newFrameIndex
 //            << ". getting subaddress" << std::endl;
   auto d = getSubAddress (virtualAddress, TABLES_DEPTH);
+  std::cout << "from VMread at the end" << std::endl;
+
   PMread (newFrameIndex * PAGE_SIZE + d, value);
 }
 
