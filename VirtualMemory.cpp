@@ -18,17 +18,19 @@ uint64_t
 getSubAddress (uint64_t virtualAddress, int level, int bitWidth = OFFSET_WIDTH)
 {
   std::cout << " ~~~ getting sub address" << std::endl;
-//  std::cout << "     virtualAddress: " << virtualAddress << std::endl;
+  std::cout << "     virtualAddress: " << virtualAddress << std::endl;
   std::cout << "     level: " << level << std::endl;
-//  std::cout << "     bitWidth: " << bitWidth << std::endl;
+  std::cout << "     bitWidth: " << bitWidth << std::endl;
   int startInd = getStartBit (level, bitWidth);
-//  std::cout << "     startInd: " << startInd << std::endl;
+  std::cout << "     startInd: " << startInd << std::endl;
   uint64_t mask = 1LL << (bitWidth);
-//  std::cout << "     mask: " << mask << std::endl;
+  std::cout << "     mask: " << mask << std::endl;
   mask--;
-//  std::cout << "     mask: " << mask << std::endl;
+  std::cout << "     mask: " << mask << std::endl;
   mask = mask << startInd;
-//  std::cout << "     mask: " << mask << std::endl;
+  std::cout << "     mask: " << mask << std::endl;
+  std::cout << "     mask & virtualAddress: " << (mask & virtualAddress)
+            << std::endl;
   auto a = (mask & virtualAddress) >> startInd;
   std::cout << "     RESULT: " << a << std::endl;
   return a;
@@ -60,6 +62,8 @@ int isFrameEmpty (uint64_t frameIndex)
 int
 getDistanceFromCurFrameIndex (uint64_t curLogicalAddressIndex, uint64_t logicalAddressPageIndex)
 {
+  std::cout << "!\ngetting distance between : " << curLogicalAddressIndex
+            << " and " << logicalAddressPageIndex << std::endl;
   uint64_t a, b;
   a = abs (int (logicalAddressPageIndex - curLogicalAddressIndex));
   b = NUM_PAGES - a;
@@ -69,21 +73,35 @@ getDistanceFromCurFrameIndex (uint64_t curLogicalAddressIndex, uint64_t logicalA
     }
   return b;
 }
+uint64_t
+getNextLogicalAddress (uint64_t oldLogicalAddress, uint64_t currentStepDirection)
+{
+  std::cout << " 0 - oldLogicalAddress " << oldLogicalAddress << ", currentStepDirection " << currentStepDirection << std::endl;
+  uint64_t newLogicalAddress = oldLogicalAddress << OFFSET_WIDTH;
+
+  std::cout << "   - after pushing by offset: " << newLogicalAddress<< std::endl;
+  if (currentStepDirection != 0)
+    {
+      newLogicalAddress = newLogicalAddress | currentStepDirection;
+    }
+  std::cout << "   - after or with offset: " << newLogicalAddress << std::endl;
+  return newLogicalAddress;
+}
 
 void
 DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *res,
      int *maxDist, uint64_t *maxDistIndex, uint64_t logicalAddressPageIndex,
      uint64_t *fatherIndexOfFinalIndex, uint64_t *logicalAddressOfFinalFrameIndex,
-     uint64_t *frameIndexOfFinalIndexInFather, int *done)
+     uint64_t *frameIndexOfFinalIndexInFather, int *done, uint64_t currentLogicalAddress)
 {
 
   // makes sure to NOT delete the current frame
   std::cout << "getting sub address for current logical address in DFS"
             << std::endl;
 
-  auto currentLogicalAddress = getSubAddress (curFrameIndex, TABLES_DEPTH - 1,
-                                              VIRTUAL_ADDRESS_WIDTH
-                                              - OFFSET_WIDTH);
+//  auto currentLogicalAddress = getSubAddress (curFrameIndex, TABLES_DEPTH - 1,
+//                                              VIRTUAL_ADDRESS_WIDTH
+//                                              - OFFSET_WIDTH); //here giving backk 4 should give 6
   if (fatherFrameIndex != curFrameIndex && level != TABLES_DEPTH)
     {
       if (isFrameEmpty (curFrameIndex))
@@ -131,9 +149,14 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *res
               std::cout << "value != 0" << std::endl;
               *fatherIndexOfFinalIndex = curFrameIndex;
               *frameIndexOfFinalIndexInFather = i;
-              DFS (fatherFrameIndex, (uint64_t) value, level + 1, res,
+//              *curFrameIndex = value;
+//          auto nextLogicalAddress = getNextLogicalAddress(oldLogicalAddress, i);
+
+              DFS (fatherFrameIndex, value, level + 1, res,
                    maxDist, maxDistIndex, logicalAddressPageIndex,
-                   fatherIndexOfFinalIndex, logicalAddressOfFinalFrameIndex, frameIndexOfFinalIndexInFather, done);
+                   fatherIndexOfFinalIndex, logicalAddressOfFinalFrameIndex,
+                   frameIndexOfFinalIndexInFather, done,
+                   getNextLogicalAddress (currentLogicalAddress, i));
               if (*done)
                 {
                   return;
@@ -150,15 +173,14 @@ findFreeFrameIndex (uint64_t fatherFrameIndex, int *nextIndex, uint64_t logicalA
   if ((*nextIndex + 1) < NUM_FRAMES)
     {
       *nextIndex = *nextIndex + 1;
-//        std::cout << "found free frame from regular indexes. at: " << *nextIndex << std::endl;
-//        std::cout << "address at: " << nextIndex << std::endl;
-      return *nextIndex; // todo: check that ++ before return not after
+      return *nextIndex;
     }
+
   std::cout << "No more indexes left. this is good." << std::endl;
   uint64_t res = -1;
   int done = 0;
   int maxDist = 0;
-  int currentFrameIndexInDFS = 0;
+  uint64_t currentFrameIndexInDFS = 0;
   uint64_t logicalAddressOfFinalFrameIndex = -1;
   uint64_t maxDistIndex = -1;
   uint64_t fatherIndexOfFinalIndex = -1;
@@ -167,7 +189,7 @@ findFreeFrameIndex (uint64_t fatherFrameIndex, int *nextIndex, uint64_t logicalA
   std::cout << "starting DFS" << std::endl;
   DFS (fatherFrameIndex, currentFrameIndexInDFS, 0, &res, &maxDist, &maxDistIndex,
        logicalAddressPageIndex, &fatherIndexOfFinalIndex, &logicalAddressOfFinalFrameIndex,
-       &frameIndexOfFinalIndexInFather, &done);
+       &frameIndexOfFinalIndexInFather, &done, 0);
   std::cout << "finished DFS" << std::endl;
 
   if (res != -1)
@@ -199,26 +221,15 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
                                                     TABLES_DEPTH - 1,
                                                     VIRTUAL_ADDRESS_WIDTH
                                                     - OFFSET_WIDTH);
-  int offsetSize;
   for (int i = 0; i < TABLES_DEPTH; i++)
     {
-      if (i != TABLES_DEPTH)
-        {
-//          offsetSize = PAGE_SIZE;
-          offsetSize = OFFSET_WIDTH;
-        }
-      else
-        {
-          offsetSize = OFFSET_WIDTH;
-        }
 //      std::cout << "getting sub address p_i. i = " << i << std::endl;
-
-      p_i = getSubAddress (virtualAddress, i, offsetSize);
+      p_i = getSubAddress (virtualAddress, i, OFFSET_WIDTH);
       std::cout << "!! current depth is: " << i << ". offset is: Pi: " << p_i
-                 << ". freeFrameIndex is: " << freeFrameIndex << std::endl;
+                << ". freeFrameIndex is: " << freeFrameIndex << std::endl;
       PMread (freeFrameIndex * PAGE_SIZE + p_i, addresses + i);
 
-        std::cout << "next address from PMread: " << addresses[i] << std::endl;
+      std::cout << "next address from PMread: " << addresses[i] << std::endl;
       if (addresses[i] == 0)
         {
 //            std::cout << "   going to find frame" << std::endl;
@@ -269,8 +280,8 @@ int VMread (uint64_t virtualAddress, word_t *value)
   uint64_t newFrameIndex = insertPageToFrame (virtualAddress);
   std::cout << "\n + from VMread got ne empty frame: " << newFrameIndex
             << ". getting subaddress" << std::endl;
-  auto d = getSubAddress(virtualAddress, TABLES_DEPTH);
-    PMread(newFrameIndex * PAGE_SIZE + d, value);
+  auto d = getSubAddress (virtualAddress, TABLES_DEPTH);
+  PMread (newFrameIndex * PAGE_SIZE + d, value);
 }
 
 /* Writes a word to the given virtual address.
@@ -284,8 +295,8 @@ int VMwrite (uint64_t virtualAddress, word_t value)
   std::cout << "\n + VMwrite called" << std::endl;
 
   uint64_t newFrameIndex = insertPageToFrame (virtualAddress);
-    auto d = getSubAddress(virtualAddress, TABLES_DEPTH);
-    PMwrite(newFrameIndex * PAGE_SIZE + d, value);
+  auto d = getSubAddress (virtualAddress, TABLES_DEPTH);
+  PMwrite (newFrameIndex * PAGE_SIZE + d, value);
 }
 //
 //int main (int argc, char **argv)
