@@ -94,7 +94,7 @@ void
 DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *indexOfEmptyFrameFound,
      int *maxDist, uint64_t *maxDistIndex, uint64_t logicalAddressPageIndex,
      uint64_t *fatherIndexOfFinalIndex, uint64_t *logicalAddressOfFinalFrameIndex,
-     uint64_t *frameIndexOfFinalIndexInFather, int *done, uint64_t currentLogicalAddress)
+     uint64_t *frameIndexOfFinalIndexInFather, int *done, uint64_t currentLogicalAddress, uint64_t fatherIndexInt,  uint64_t indexINFatherIndexInt)
 {
 
   // makes sure to NOT delete the current frame
@@ -108,6 +108,8 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
           *indexOfEmptyFrameFound = curFrameIndex;
           *logicalAddressOfFinalFrameIndex = currentLogicalAddress;
           *done = 1;
+          *fatherIndexOfFinalIndex = fatherIndexInt;
+          *frameIndexOfFinalIndexInFather = indexINFatherIndexInt;
           return;
         }
     }
@@ -126,6 +128,8 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
           *maxDist = dist;
           *maxDistIndex = curFrameIndex;
           *logicalAddressOfFinalFrameIndex = currentLogicalAddress;
+          *fatherIndexOfFinalIndex = fatherIndexInt;
+          *frameIndexOfFinalIndexInFather = indexINFatherIndexInt;
         }
     }
   else
@@ -146,8 +150,6 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
           if (value != 0)
             {
               std::cout << "value != 0" << std::endl;
-              *fatherIndexOfFinalIndex = curFrameIndex;
-              *frameIndexOfFinalIndexInFather = i;
 //              *curFrameIndex = value;
 //          auto nextLogicalAddress = getNextLogicalAddress(oldLogicalAddress, i);
 
@@ -155,7 +157,7 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
                    maxDist, maxDistIndex, logicalAddressPageIndex,
                    fatherIndexOfFinalIndex, logicalAddressOfFinalFrameIndex,
                    frameIndexOfFinalIndexInFather, done,
-                   getNextLogicalAddress (currentLogicalAddress, i));
+                   getNextLogicalAddress (currentLogicalAddress, i), curFrameIndex, i);
               if (*done)
                 {
                   return;
@@ -191,7 +193,7 @@ findFreeFrameIndex (uint64_t fatherFrameIndex, int *nextIndex, uint64_t logicalA
   std::cout << "starting DFS" << std::endl;
   DFS (fatherFrameIndex, currentFrameIndexInDFS, 0, &indexOfEmptyFrameFound, &maxDist, &maxDistIndex,
        logicalAddressPageIndex, &fatherIndexOfFinalIndex, &logicalAddressOfFinalFrameIndex,
-       &frameIndexOfFinalIndexInFather, &done, 0);
+       &frameIndexOfFinalIndexInFather, &done, 0, 0, 0);
   std::cout << "finished DFS" << std::endl;
 
   if (indexOfEmptyFrameFound != 0)
