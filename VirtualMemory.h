@@ -1,7 +1,7 @@
 #pragma once
 
-//#include "MemoryConstants.h"
-#include "YaaraConstants.h"
+#include "MemoryConstants.h"
+//#include "YaaraConstants.h"
 //#include "MemoryConstantsTest.h"
 
 /*

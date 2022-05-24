@@ -64,6 +64,8 @@ getNextLogicalAddress (uint64_t oldLogicalAddress, uint64_t currentStepDirection
 {
   uint64_t newLogicalAddress = oldLogicalAddress << OFFSET_WIDTH;
 
+//  std::cout << "   - after pushing by offset: " << newLogicalAddress
+//            << std::endl;
   if (currentStepDirection != 0)
     {
       newLogicalAddress = newLogicalAddress | currentStepDirection;
