@@ -206,7 +206,6 @@ void VMinitialize ()
 {
   initializeTable (0);
   initializeTable (1);
-  nextFreeIndex = 0;
 }
 
 /* Reads a word from the given virtual address
