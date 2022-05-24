@@ -6,9 +6,7 @@
 #include "PhysicalMemory.h"
 #include <stdlib.h>
 
-int nextFreeIndex;
-
-int getStartBit (int level, int bitWidth)
+int getStartBit (int level)
 {
   return OFFSET_WIDTH * (TABLES_DEPTH - level);
 }
@@ -16,7 +14,7 @@ int getStartBit (int level, int bitWidth)
 uint64_t
 getSubAddress (uint64_t virtualAddress, int level, int bitWidth = OFFSET_WIDTH)
 {
-  int startInd = getStartBit (level, bitWidth);
+  int startInd = getStartBit (level);
   uint64_t mask = 1LL << (bitWidth);
   mask--;
   mask = mask << startInd;
@@ -59,6 +57,7 @@ getDistanceFromCurFrameIndex (uint64_t curLogicalAddressIndex, uint64_t logicalA
     }
   return b;
 }
+
 uint64_t
 getNextLogicalAddress (uint64_t oldLogicalAddress, uint64_t currentStepDirection)
 {
@@ -75,8 +74,13 @@ void
 DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *indexOfEmptyFrameFound,
      int *maxDist, uint64_t *maxDistIndex, uint64_t logicalAddressPageIndex,
      uint64_t *fatherIndexOfFinalIndex, uint64_t *logicalAddressOfFinalFrameIndex,
-     uint64_t *frameIndexOfFinalIndexInFather, int *done, uint64_t currentLogicalAddress, uint64_t fatherIndexInt,  uint64_t indexINFatherIndexInt)
+     uint64_t *frameIndexOfFinalIndexInFather, int *done, uint64_t currentLogicalAddress,
+     uint64_t fatherIndexInt,  uint64_t indexINFatherIndexInt, uint64_t *maxIndexUsed)
 {
+  if (*maxIndexUsed < curFrameIndex)
+    {
+      *maxIndexUsed = curFrameIndex;
+    }
   if (fatherFrameIndex != curFrameIndex && level != TABLES_DEPTH)
     {
       if (isFrameEmpty (curFrameIndex))
@@ -107,7 +111,6 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
       word_t value;
       for (int i = 0; i < PAGE_SIZE; i++)
         {
-
           PMread (curFrameIndex * PAGE_SIZE + i, &value);
           if (value >= NUM_FRAMES)
             {
@@ -116,12 +119,11 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
             }
           if (value != 0)
             {
-
               DFS (fatherFrameIndex, value, level + 1, indexOfEmptyFrameFound,
                    maxDist, maxDistIndex, logicalAddressPageIndex,
                    fatherIndexOfFinalIndex, logicalAddressOfFinalFrameIndex,
                    frameIndexOfFinalIndexInFather, done,
-                   getNextLogicalAddress (currentLogicalAddress, i), curFrameIndex, i);
+                   getNextLogicalAddress (currentLogicalAddress, i), curFrameIndex, i, maxIndexUsed);
               if (*done)
                 {
                   return;
@@ -129,18 +131,11 @@ DFS (uint64_t fatherFrameIndex, uint64_t curFrameIndex, int level, uint64_t *ind
             }
         }
     }
-
 }
 
 uint64_t
-findFreeFrameIndex (uint64_t fatherFrameIndex, int *nextIndex, uint64_t logicalAddressPageIndex)
+findFreeFrameIndex (uint64_t fatherFrameIndex, uint64_t logicalAddressPageIndex)
 {
-  if ((*nextIndex + 1) < NUM_FRAMES)
-    {
-      *nextIndex = *nextIndex + 1;
-      return *nextIndex;
-    }
-
   uint64_t indexOfEmptyFrameFound = 0;
   int done = 0;
   int maxDist = 0;
@@ -149,17 +144,20 @@ findFreeFrameIndex (uint64_t fatherFrameIndex, int *nextIndex, uint64_t logicalA
   uint64_t maxDistIndex = 0;
   uint64_t fatherIndexOfFinalIndex = 0;
   uint64_t frameIndexOfFinalIndexInFather = 0;
+  uint64_t maxIndexUsed = 0;
 
   DFS (fatherFrameIndex, currentFrameIndexInDFS, 0, &indexOfEmptyFrameFound, &maxDist, &maxDistIndex,
        logicalAddressPageIndex, &fatherIndexOfFinalIndex, &logicalAddressOfFinalFrameIndex,
-       &frameIndexOfFinalIndexInFather, &done, 0, 0, 0);
+       &frameIndexOfFinalIndexInFather, &done, 0, 0, 0, &maxIndexUsed);
 
   if (indexOfEmptyFrameFound != 0)
     {
       PMwrite ((fatherIndexOfFinalIndex) * PAGE_SIZE + frameIndexOfFinalIndexInFather, 0);
       return indexOfEmptyFrameFound;
     }
-
+  else if (maxIndexUsed + 1 < NUM_FRAMES){
+      return maxIndexUsed + 1;
+  }
   PMevict (maxDistIndex, logicalAddressOfFinalFrameIndex);
   initializeTable (maxDistIndex);
   PMwrite ((fatherIndexOfFinalIndex) * PAGE_SIZE + frameIndexOfFinalIndexInFather, 0);
@@ -186,7 +184,7 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
         {
           // find room for next kid
           lastFreeFrameIndex = freeFrameIndex;
-          freeFrameIndex = findFreeFrameIndex (lastFreeFrameIndex, &nextFreeIndex, logicalAddressPageIndex);
+          freeFrameIndex = findFreeFrameIndex (lastFreeFrameIndex, logicalAddressPageIndex);
           // link the new empty frame to father
           PMwrite (lastFreeFrameIndex * PAGE_SIZE + p_i, freeFrameIndex);
         }
@@ -207,6 +205,7 @@ uint64_t insertPageToFrame (uint64_t virtualAddress)
 void VMinitialize ()
 {
   initializeTable (0);
+  initializeTable (1);
   nextFreeIndex = 0;
 }
 
@@ -219,6 +218,7 @@ void VMinitialize ()
  */
 int VMread (uint64_t virtualAddress, word_t *value)
 {
+  // todo: if the address cannot be mapped to a physical address for any reason return 0
   uint64_t newFrameIndex = insertPageToFrame (virtualAddress);
   auto d = getSubAddress (virtualAddress, TABLES_DEPTH);
   PMread (newFrameIndex * PAGE_SIZE + d, value);
@@ -233,6 +233,7 @@ int VMread (uint64_t virtualAddress, word_t *value)
  */
 int VMwrite (uint64_t virtualAddress, word_t value)
 {
+  // todo: if the address cannot be mapped to a physical address for any reason return 0
   uint64_t newFrameIndex = insertPageToFrame (virtualAddress);
   auto d = getSubAddress (virtualAddress, TABLES_DEPTH);
   PMwrite (newFrameIndex * PAGE_SIZE + d, value);
