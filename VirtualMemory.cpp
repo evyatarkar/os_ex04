@@ -218,9 +218,9 @@ void VMinitialize ()
 int VMread (uint64_t virtualAddress, word_t *value)
 {
   // todo: if the address cannot be mapped to a physical address for any reason return 0
-  if ((virtualAddress >> OFFSET_WIDTH) > NUM_FRAMES || (virtualAddress >> OFFSET_WIDTH) < 0){
-    return 0;
-  }
+  if (virtualAddress > VIRTUAL_MEMORY_SIZE - 1){
+      return 0;
+    }
   uint64_t newFrameIndex = insertPageToFrame (virtualAddress);
   auto d = getSubAddress (virtualAddress, TABLES_DEPTH);
   PMread (newFrameIndex * PAGE_SIZE + d, value);
@@ -236,7 +236,7 @@ int VMread (uint64_t virtualAddress, word_t *value)
 int VMwrite (uint64_t virtualAddress, word_t value)
 {
   // todo: if the address cannot be mapped to a physical address for any reason return 0
-  if ((virtualAddress >> OFFSET_WIDTH) > NUM_FRAMES || (virtualAddress >> OFFSET_WIDTH) < 0){
+  if (virtualAddress > VIRTUAL_MEMORY_SIZE - 1){
       return 0;
     }
   uint64_t newFrameIndex = insertPageToFrame (virtualAddress);

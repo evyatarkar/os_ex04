@@ -2,7 +2,7 @@ CC=g++
 CXX=g++
 RANLIB=ranlib
 
-LIBSRC= MemoryConstants.h PhysicalMemory.h PhysicalMemory.cpp VirtualMemory.h VirtualMemory.cpp
+LIBSRC= VirtualMemory.cpp
 LIBOBJ=$(LIBSRC:.cpp=.o)
 
 INCS=-I.
